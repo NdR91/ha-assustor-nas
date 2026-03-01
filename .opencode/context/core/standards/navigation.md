@@ -13,6 +13,7 @@
 | `code-quality.md` | Code quality rules | ⭐⭐⭐⭐⭐ | Writing/reviewing code |
 | `test-coverage.md` | Testing standards | ⭐⭐⭐⭐⭐ | Writing tests |
 | `documentation.md` | Documentation rules | ⭐⭐⭐⭐ | Writing docs |
+| `versioning-and-releases.md` | Release & Tagging rules | ⭐⭐⭐⭐ | Creating releases, tagging |
 | `security-patterns.md` | Security best practices | ⭐⭐⭐⭐ | Security review, patterns |
 | `project-intelligence.md` | What and why | ⭐⭐⭐⭐ | Onboarding, understanding projects |
 | `project-intelligence-management.md` | How to manage | ⭐⭐⭐ | Managing intelligence files |
