@@ -1,6 +1,6 @@
 {
   "domain": "ha_asustor_nas_custom_integration",
-  "name": "Home Assistant Asustor NAS custom integration",
+  "name": "Asustor NAS Custom Integration",
   "codeowners": [
     "@NdR91"
   ],

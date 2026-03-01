@@ -5,16 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from pysnmp.hlapi import (  # type: ignore[import-untyped]
-    CommunityData,
-    ContextData,
-    ObjectIdentity,
-    ObjectType,
-    SnmpEngine,
-    UdpTransportTarget,
-    getCmd,
-    nextCmd,
-)
+import pysnmp.hlapi as hlapi
 
 from homeassistant.core import HomeAssistant
 
@@ -51,14 +42,14 @@ class AsustorNasApiClient:
         """Get data for specific OIDs synchronously."""
         try:
             # Create engine locally in the thread to avoid sharing across threads
-            snmp_engine = SnmpEngine()
+            snmp_engine = hlapi.SnmpEngine()
             
-            iterator = getCmd(
+            iterator = hlapi.getCmd(
                 snmp_engine,
-                CommunityData(self.community, mpModel=1),  # mpModel=1 means SNMPv2c
-                UdpTransportTarget((self.host, self.port), timeout=5, retries=1),
-                ContextData(),
-                *[ObjectType(ObjectIdentity(oid)) for oid in oids],
+                hlapi.CommunityData(self.community, mpModel=1),  # mpModel=1 means SNMPv2c
+                hlapi.UdpTransportTarget((self.host, self.port), timeout=5, retries=1),
+                hlapi.ContextData(),
+                *[hlapi.ObjectType(hlapi.ObjectIdentity(oid)) for oid in oids],
             )
 
             error_indication, error_status, error_index, var_binds = next(iterator)
@@ -89,15 +80,15 @@ class AsustorNasApiClient:
     def _walk_table_sync(self, base_oid: str) -> dict[str, Any]:
         """Walk an SNMP table synchronously and return the results."""
         try:
-            snmp_engine = SnmpEngine()
+            snmp_engine = hlapi.SnmpEngine()
             result = {}
             
-            iterator = nextCmd(
+            iterator = hlapi.nextCmd(
                 snmp_engine,
-                CommunityData(self.community, mpModel=1),
-                UdpTransportTarget((self.host, self.port), timeout=5, retries=1),
-                ContextData(),
-                ObjectType(ObjectIdentity(base_oid)),
+                hlapi.CommunityData(self.community, mpModel=1),
+                hlapi.UdpTransportTarget((self.host, self.port), timeout=5, retries=1),
+                hlapi.ContextData(),
+                hlapi.ObjectType(hlapi.ObjectIdentity(base_oid)),
                 lexicographicMode=False,
             )
 
