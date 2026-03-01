@@ -61,7 +61,7 @@ class AsustorNasApiClient:
             iterator = get_cmd(
                 snmp_engine,
                 CommunityData(self.community, mpModel=1),  # mpModel=1 means SNMPv2c
-                UdpTransportTarget((self.host, self.port), timeout=5, retries=1),
+                UdpTransportTarget((self.host, self.port)),
                 ContextData(),
                 *[ObjectType(ObjectIdentity(oid)) for oid in oids],
             )
@@ -103,7 +103,7 @@ class AsustorNasApiClient:
             iterator = next_cmd(
                 snmp_engine,
                 CommunityData(self.community, mpModel=1),
-                UdpTransportTarget((self.host, self.port), timeout=5, retries=1),
+                UdpTransportTarget((self.host, self.port)),
                 ContextData(),
                 ObjectType(ObjectIdentity(base_oid)),
                 lexicographicMode=False,
