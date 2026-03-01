@@ -1,130 +1,74 @@
-<!-- Context: project-intelligence/decisions | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/decisions | Priority: high | Version: 1.1 | Updated: 2026-03-01 -->
 
 # Decisions Log
 
 > Record major architectural and business decisions with full context. This prevents "why was this done?" debates.
 
-## Quick Reference
+## Decision: Use `pysnmp` 7.x (Lextudio)
 
-- **Purpose**: Document decisions so future team members understand context
-- **Format**: Each decision as a separate entry
-- **Status**: Decided | Pending | Under Review | Deprecated
-
-## Decision Template
-
-```markdown
-## [Decision Title]
-
-**Date**: YYYY-MM-DD
-**Status**: [Decided/Pending/Under Review/Deprecated]
-**Owner**: [Who owns this decision]
+**Date**: 2026-03-01
+**Status**: Decided
+**Owner**: @NdR91 / OpenCode
 
 ### Context
-[What situation prompted this decision? What was the problem or opportunity?]
+The original `pysnmp` library was unmaintained. The `pysnmp-lextudio` fork was the standard for a while but has now been merged back into the main `pysnmp` package (v7.x). Home Assistant requires non-blocking I/O.
 
 ### Decision
-[What was decided? Be specific about the choice made.]
+Use `pysnmp>=7.1.4` and its `asyncio`-based high-level API (`v3arch.asyncio`).
 
 ### Rationale
-[Why this decision? What were the alternatives and why were they rejected?]
+- Version 7.x is the officially maintained version.
+- It supports `asyncio` natively.
+- It is compatible with Python 3.13.
 
 ### Alternatives Considered
 | Alternative | Pros | Cons | Why Rejected? |
 |-------------|------|------|---------------|
-| [Alt 1] | [Pros] | [Cons] | [Why not chosen] |
-| [Alt 2] | [Pros] | [Cons] | [Why not chosen] |
+| `pysnmp-lextudio` | Familiar | Deprecated | Merged into main `pysnmp`. |
+| `snmpit` | Simple | Less feature-rich | `pysnmp` is the industry standard. |
 
 ### Impact
-**Positive**: [What this enables or improves]
-**Negative**: [What trade-offs or limitations this creates]
-**Risk**: [What could go wrong]
-
-### Related
-- [Links to related decisions, PRs, issues, or documentation]
-```
+- **Positive**: Long-term maintainability, native async support.
+- **Negative**: Breaking changes in imports and method names compared to 6.x.
+- **Risk**: MIB loading might still block the event loop if not handled carefully.
 
 ---
 
-## Decision: [Title]
+## Decision: Memory Calculation via `UCD-SNMP-MIB`
 
-**Date**: YYYY-MM-DD
-**Status**: [Status]
-**Owner**: [Owner]
+**Date**: 2026-03-01
+**Status**: Decided
+**Owner**: @NdR91 / OpenCode
 
 ### Context
-[What was happening? Why did we need to decide?]
+The ASUSTOR Enterprise MIB only exposes "Free" memory, which is misleading on Linux as it doesn't account for Buffers/Cache. The ADM UI shows "Utilization" which excludes these.
 
 ### Decision
-[What we decided]
+Use standard Linux `UCD-SNMP-MIB` (`1.3.6.1.4.1.2021.4`) to fetch Total, Free, Buffers, and Cached memory.
+Formula: `Used = Total - (Free + Buffers + Cached)`.
 
 ### Rationale
-[Why this was the right choice]
-
-### Alternatives Considered
-| Alternative | Pros | Cons | Why Rejected? |
-|-------------|------|------|---------------|
-| [Option A] | [Good things] | [Bad things] | [Reason] |
-| [Option B] | [Good things] | [Bad things] | [Reason] |
-
-### Impact
-- **Positive**: [What we gain]
-- **Negative**: [What we trade off]
-- **Risk**: [What to watch for]
-
-### Related
-- [Link to PR #000]
-- [Link to issue #000]
-- [Link to documentation]
+Matches the user experience in the ADM Activity Monitor.
 
 ---
 
-## Decision: [Title]
+## Decision: Unique ID via MAC Address
 
-**Date**: YYYY-MM-DD
-**Status**: [Status]
-**Owner**: [Owner]
+**Date**: 2026-03-01
+**Status**: Decided
+**Owner**: @NdR91 / OpenCode
 
 ### Context
-[What was happening?]
+ASUSTOR NAS devices do not reliably expose a Serial Number via SNMP. Home Assistant needs a stable `unique_id`.
 
 ### Decision
-[What we decided]
+Use the MAC address of the first valid network interface found via `IF-MIB` (`1.3.6.1.2.1.2.2.1.6`).
 
 ### Rationale
-[Why this was right]
-
-### Alternatives Considered
-| Alternative | Pros | Cons | Why Rejected? |
-|-------------|------|------|---------------|
-| [Option A] | [Good things] | [Bad things] | [Reason] |
-
-### Impact
-- **Positive**: [What we gain]
-- **Negative**: [What we trade off]
-
-### Related
-- [Link]
+MAC addresses are stable hardware identifiers.
 
 ---
-
-## Deprecated Decisions
-
-Decisions that were later overturned (for historical context):
-
-| Decision | Date | Replaced By | Why |
-|----------|------|-------------|-----|
-| [Old decision] | [Date] | [New decision] | [Reason] |
-
-## Onboarding Checklist
-
-- [ ] Understand the philosophy behind major architectural choices
-- [ ] Know why certain technologies were chosen over alternatives
-- [ ] Understand trade-offs that were made
-- [ ] Know where to find decision context when questions arise
-- [ ] Understand what decisions are pending and why
 
 ## Related Files
-
 - `technical-domain.md` - Technical implementation affected by these decisions
-- `business-tech-bridge.md` - How decisions connect business and technical
 - `living-notes.md` - Current open questions that may become decisions

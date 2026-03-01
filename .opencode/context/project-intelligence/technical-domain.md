@@ -1,105 +1,56 @@
-<!-- Context: project-intelligence/technical | Priority: high | Version: 1.0 | Updated: 2025-01-12 -->
+<!-- Context: project-intelligence/technical | Priority: high | Version: 1.1 | Updated: 2026-03-01 -->
 
 # Technical Domain
 
 > Document the technical foundation, architecture, and key decisions.
 
-## Quick Reference
-
-- **Purpose**: Understand how the project works technically
-- **Update When**: New features, refactoring, tech stack changes
-- **Audience**: Developers, DevOps, technical stakeholders
-
 ## Primary Stack
 
 | Layer | Technology | Version | Rationale |
 |-------|-----------|---------|-----------|
-| Language | [e.g., TypeScript] | [Version] | [Why this language] |
-| Framework | [e.g., Node.js] | [Version] | [Why this framework] |
-| Database | [e.g., PostgreSQL] | [Version] | [Why this database] |
-| Infrastructure | [e.g., AWS, Vercel] | [N/A] | [Why this infra] |
-| Key Libraries | [List important ones] | [Versions] | [Why each matters] |
+| Language | Python | 3.13+ | Home Assistant standard |
+| Framework | Home Assistant Core | Latest | Target platform |
+| Protocol | SNMP | v2c | Native NAS monitoring |
+| Key Libraries | `pysnmp` | >=7.1.4 | Maintained SNMP library |
 
 ## Architecture Pattern
 
 ```
-Type: [Monolith | Microservices | Serverless | Agent-based | Hybrid]
-Pattern: [Brief description]
-Diagram: [Link to architecture diagram if exists]
+Type: Home Assistant Custom Integration
+Pattern: DataUpdateCoordinator
 ```
 
 ### Why This Architecture?
-
-[Explain the business and technical reasons for this architecture choice. What problem does this architecture solve? What were alternatives considered?]
+The `DataUpdateCoordinator` pattern is the Home Assistant best practice for polling-based integrations. It centralizes data fetching, reduces network overhead, and ensures all entities are updated simultaneously with consistent data.
 
 ## Project Structure
 
 ```
 [Project Root]
-├── src/                    # Source code
-├── tests/                  # Test files
-├── docs/                   # Documentation
-├── scripts/                # Build/deploy scripts
-└── [Other key directories]
+├── custom_components/ha_asustor_nas_custom_integration/
+│   ├── api/                # SNMP Client logic
+│   ├── coordinator/        # DataUpdateCoordinator implementation
+│   ├── config_flow_handler/# UI Setup logic
+│   ├── sensor.py           # Sensor entity definitions
+│   └── const.py            # Constants and OIDs
+├── docs/                   # Documentation (Functional Analysis)
+├── .opencode/              # AI Agent context and standards
+└── script/                 # HA development scripts
 ```
-
-**Key Directories**:
-- `src/` - Contains all application logic organized by [module/feature/domain]
-- `tests/` - [How tests are organized]
-- `docs/` - [What documentation lives here]
 
 ## Key Technical Decisions
 
 | Decision | Rationale | Impact |
 |----------|-----------|--------|
-| [Decision 1] | [Why this choice] | [What it enables] |
-| [Decision 2] | [Why this choice] | [What it enables] |
-
-See `decisions-log.md` for full decision history with alternatives.
+| `pysnmp` 7.x | Maintained, async support | Breaking changes in imports |
+| `UCD-SNMP-MIB` | Accurate memory usage | Matches ADM UI |
+| MAC as Unique ID | Stable hardware ID | Reliable device tracking |
 
 ## Integration Points
 
 | System | Purpose | Protocol | Direction |
 |--------|---------|----------|-----------|
-| [API 1] | [What it does] | [REST/GraphQL/gRPC] | [Inbound/Outbound] |
-| [Database] | [What it stores] | [PostgreSQL/Mongo/etc] | [Internal] |
-| [Service] | [What it provides] | [HTTP/gRPC] | [Outbound] |
-
-## Technical Constraints
-
-| Constraint | Origin | Impact |
-|------------|--------|--------|
-| [Legacy systems] | [Business/Tech] | [What limitation it creates] |
-| [Compliance] | [Regulation] | [What must be followed] |
-| [Performance] | [SLAs] | [What must be met] |
-
-## Development Environment
-
-```
-Setup: [Quick setup command or link]
-Requirements: [What developers need installed]
-Local Dev: [How to run locally]
-Testing: [How to run tests]
-```
-
-## Deployment
-
-```
-Environment: [Production/Staging/Development]
-Platform: [Where it deploys]
-CI/CD: [Pipeline used]
-Monitoring: [Tools for observability]
-```
-
-## Onboarding Checklist
-
-- [ ] Know the primary tech stack
-- [ ] Understand the architecture pattern and why it was chosen
-- [ ] Know the key project directories and their purpose
-- [ ] Understand major technical decisions and rationale
-- [ ] Know integration points and dependencies
-- [ ] Be able to set up local development environment
-- [ ] Know how to run tests and deploy
+| ASUSTOR NAS | Monitoring data | SNMP v2c | Inbound |
 
 ## Related Files
 
