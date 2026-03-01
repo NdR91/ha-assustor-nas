@@ -1,0 +1,16 @@
+{
+  "domain": "ha_asustor_nas_custom_integration",
+  "name": "Home Assistant Asustor NAS custom integration",
+  "codeowners": [
+    "@NdR91"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/NdR91/ha-assustor-nas",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/NdR91/ha-assustor-nas/issues",
+  "requirements": [
+    "pysnmp-lextudio>=6.1.3"
+  ],
+  "version": "0.1.0"
+}

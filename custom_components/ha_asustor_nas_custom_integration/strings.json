@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Configure your ASUSTOR NAS for SNMP monitoring.",
+        "data": {
+          "host": "Host (IP or Hostname)",
+          "port": "SNMP Port",
+          "community": "SNMP Community String",
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the NAS. Check host, port, and SNMP settings.",
+      "invalid_auth": "Invalid SNMP community string.",
+      "unknown": "Unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "Device is already configured."
+    }
+  }
+}

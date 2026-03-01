@@ -13,10 +13,10 @@ Read `AGENTS.md` completely before starting any work. It contains:
 
 ## Quick Reference
 
-- **Domain:** `ha_integration_domain`
-- **Title:** Integration Blueprint
-- **Class prefix:** `IntegrationBlueprint`
-- **Main code:** `custom_components/ha_integration_domain/`
+- **Domain:** `ha_asustor_nas_custom_integration`
+- **Title:** Home Assistant Asustor NAS custom integration
+- **Class prefix:** `HomeAssistantAsustorNASCustom`
+- **Main code:** `custom_components/ha_asustor_nas_custom_integration/`
 - **Validate:** `script/check` (type-check + lint + spell)
 - **Test:** `script/test`
 - **Run HA:** `./script/develop`

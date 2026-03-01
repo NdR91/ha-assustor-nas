@@ -1,6 +1,6 @@
 # GitHub Codespaces Development Guide
 
-Integration blueprint is fully compatible with GitHub Codespaces for cloud-based development.
+Home Assistant Asustor NAS custom integration is fully compatible with GitHub Codespaces for cloud-based development.
 
 ## Quick Start
 

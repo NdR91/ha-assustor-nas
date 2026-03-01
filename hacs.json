@@ -1,5 +1,5 @@
 {
-  "name": "Integration blueprint",
+  "name": "Home Assistant Asustor NAS custom integration",
   "homeassistant": "2025.12.3",
   "hacs": "2.0.5"
 }
