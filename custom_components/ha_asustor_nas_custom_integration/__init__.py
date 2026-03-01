@@ -24,6 +24,7 @@ async def async_setup_entry(
     """Set up this integration using UI."""
     # Initialize client
     client = AsustorNasApiClient(
+        hass=hass,
         host=entry.data[CONF_HOST],
         community=entry.data[CONF_COMMUNITY],
         port=entry.data.get(CONF_PORT, DEFAULT_PORT),
