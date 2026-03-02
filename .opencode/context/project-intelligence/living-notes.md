@@ -31,24 +31,29 @@
 
 | Question | Stakeholders | Status | Next Action |
 |----------|--------------|--------|-------------|
-| Best way to handle MIB loading blocking? | Developer | Open | Test if `v3arch.asyncio` still blocks on MIB load |
+| Best way to handle MIB loading blocking? | Developer | Resolved | Hybrid Async Pattern implemented |
 
 ## Known Issues
 
 | Issue | Severity | Workaround | Status |
 |-------|----------|------------|--------|
-| `Invalid handler specified` | Critical | None | In Progress (Import fix needed) |
+| Raw CPU Entity ID | Low | None | Pending (Needs mapping) |
+| Icon Refinement | Low | None | Pending |
 
 ### Issue Details
 
-**`Invalid handler specified`**  
-*Severity*: Critical  
-*Impact*: Config flow fails to load.  
-*Reproduction*: Try to add the integration.  
-*Workaround*: None.  
-*Root Cause*: `AttributeError: module 'pysnmp.hlapi' has no attribute 'SnmpEngine'` due to 7.x changes.  
-*Fix Plan*: Update imports to `pysnmp.hlapi.v3arch.asyncio`.  
-*Status*: In Progress
+**Raw CPU Entity ID**  
+*Severity*: Low  
+*Impact*: One sensor shows a long alphanumeric ID instead of a friendly name.  
+*Root Cause*: Dynamic sensor creation uses raw SNMP index/value for naming.  
+*Fix Plan*: Implement a mapping or cleaner naming logic for CPU identifiers.  
+*Status*: Pending
+
+**Icon Refinement**  
+*Severity*: Low  
+*Impact*: Visual consistency.  
+*Fix Plan*: Review and update `icon` attributes in `sensor.py`.  
+*Status*: Pending
 
 ## Insights & Lessons Learned
 
