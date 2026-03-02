@@ -83,7 +83,9 @@ class AsustorNasApiClient:
 
             result = {}
             for name, val in var_binds:
-                result[name.prettyPrint()] = val.prettyPrint()
+                # Use str(name) to get the pure numeric OID string (e.g., "1.3.6.1.4.1.44738.2.1.0")
+                # instead of name.prettyPrint() which might return "SNMPv2-SMI::enterprises..."
+                result[str(name)] = val.prettyPrint()
 
             return result
 
