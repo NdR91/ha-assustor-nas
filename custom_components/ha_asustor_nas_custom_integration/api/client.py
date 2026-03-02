@@ -118,7 +118,13 @@ class AsustorNasApiClient:
                 lexicographicMode=False,
             )
 
-            for error_indication, error_status, error_index, var_binds in responses:
+            for row in responses:
+                # Handle potential None or malformed rows from pysnmp 7.x
+                if not row or len(row) != 4:
+                    continue
+                    
+                error_indication, error_status, error_index, var_binds = row
+                
                 if error_indication:
                     raise AsustorNasConnectionError(f"SNMP error: {error_indication}")
 
