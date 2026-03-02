@@ -26,7 +26,7 @@
 
 | Issue | Severity | Workaround | Status |
 |-------|----------|------------|--------|
-| Raw CPU Entity ID | Low | None | Pending (Needs mapping) |
+| Raw CPU Entity ID | Low | None | Resolved |
 | Icon Refinement | Low | None | Resolved |
 
 ### Issue Details
@@ -36,7 +36,7 @@
 *Impact*: One sensor shows a long alphanumeric ID instead of a friendly name.  
 *Root Cause*: Dynamic sensor creation uses raw SNMP index/value for naming.  
 *Fix Plan*: Implement a mapping or cleaner naming logic for CPU identifiers.  
-*Status*: Pending
+*Status*: Resolved (Updated on 2026-03-02)
 
 **Icon Refinement**  
 *Severity*: Low  

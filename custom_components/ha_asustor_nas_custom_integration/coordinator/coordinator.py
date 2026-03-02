@@ -153,21 +153,36 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.warning("Failed to parse memory data")
 
         # CPU Cores
+        # Sort OIDs to ensure stable ordering (Core 1, Core 2, etc.)
+        # We sort by the numeric value of the last segment of the OID to map
+        # raw SNMP indices (e.g. 196608) to logical indices (e.g. 1).
+        sorted_cpu_items = []
         for oid, value in cpu_cores_data.items():
             try:
-                # Extract the last part of the OID as the core index (e.g., ...2.3.1.2.0 -> 0)
-                core_index = oid.split(".")[-1]
-                processed["cpu_cores"][core_index] = int(value)
+                # Extract last part as integer for sorting
+                idx = int(oid.split(".")[-1])
+                sorted_cpu_items.append((idx, value))
             except ValueError:
-                pass
+                continue
+
+        sorted_cpu_items.sort(key=lambda x: x[0])
+
+        for i, (_, value) in enumerate(sorted_cpu_items, start=1):
+            processed["cpu_cores"][str(i)] = int(value)
 
         # Fans
+        # Sort OIDs to ensure stable ordering
+        sorted_fan_items = []
         for oid, value in fans_data.items():
             try:
-                # Extract the last part of the OID as the fan index (e.g., ...2.4.1.2.1 -> 1)
-                fan_index = oid.split(".")[-1]
-                processed["fans"][fan_index] = int(value)
+                idx = int(oid.split(".")[-1])
+                sorted_fan_items.append((idx, value))
             except ValueError:
-                pass
+                continue
+
+        sorted_fan_items.sort(key=lambda x: x[0])
+
+        for i, (_, value) in enumerate(sorted_fan_items, start=1):
+            processed["fans"][str(i)] = int(value)
 
         return processed
