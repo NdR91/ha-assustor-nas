@@ -64,7 +64,7 @@ STATIC_SENSORS: tuple[AsustorNasSensorEntityDescription, ...] = (
     AsustorNasSensorEntityDescription(
         key="memory_used",
         name="Used Memory",
-        icon="mdi:memory",
+        icon="mdi:memory-variant",
         device_class=SensorDeviceClass.DATA_SIZE,
         native_unit_of_measurement=UnitOfInformation.MEGABYTES,
         state_class=SensorStateClass.MEASUREMENT,
@@ -73,7 +73,7 @@ STATIC_SENSORS: tuple[AsustorNasSensorEntityDescription, ...] = (
     AsustorNasSensorEntityDescription(
         key="memory_usage_percent",
         name="Memory Usage",
-        icon="mdi:memory",
+        icon="mdi:percent",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda data: data.get("memory", {}).get("usage_percent"),
@@ -102,7 +102,7 @@ async def async_setup_entry(
         description = AsustorNasSensorEntityDescription(
             key=f"cpu_core_{core_id}",
             name=f"CPU Core {core_id} Usage",
-            icon="mdi:cpu-64-bit",
+            icon="mdi:speedometer",
             native_unit_of_measurement=PERCENTAGE,
             state_class=SensorStateClass.MEASUREMENT,
             value_fn=lambda d, cid=core_id: d.get("cpu_cores", {}).get(cid),
@@ -124,10 +124,11 @@ async def async_setup_entry(
     # 4. Add dynamic sensors (Temperatures)
     for temp_id in data.get("temperatures", {}):
         name = "CPU Temperature" if temp_id == "cpu" else "System Temperature"
+        icon = "mdi:thermometer" if temp_id == "cpu" else "mdi:thermometer-lines"
         description = AsustorNasSensorEntityDescription(
             key=f"temp_{temp_id}",
             name=name,
-            icon="mdi:thermometer",
+            icon=icon,
             device_class=SensorDeviceClass.TEMPERATURE,
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             state_class=SensorStateClass.MEASUREMENT,

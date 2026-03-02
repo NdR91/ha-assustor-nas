@@ -1,4 +1,4 @@
-<!-- Context: project-intelligence/notes | Priority: high | Version: 1.1 | Updated: 2026-03-01 -->
+<!-- Context: project-intelligence/notes | Priority: high | Version: 1.1 | Updated: 2026-03-02 -->
 
 # Living Notes
 
@@ -14,18 +14,7 @@
 
 | Item | Impact | Priority | Mitigation |
 |------|--------|----------|------------|
-| `pysnmp` 7.x Migration | Integration broken due to import changes | High | Refactor `AsustorNasApiClient` to use `v3arch.asyncio` |
-| Blocking I/O in Event Loop | HA stability warnings | High | Ensure all SNMP calls and MIB loading are handled correctly |
-
-### Technical Debt Details
-
-**`pysnmp` 7.x Migration**  
-*Priority*: High  
-*Impact*: Integration fails to load or connect.  
-*Root Cause*: `pysnmp` 7.x removed synchronous HLAPI and restructured namespaces.  
-*Proposed Solution*: Use `pysnmp.hlapi.v3arch.asyncio` and `snake_case` methods.  
-*Effort*: Medium  
-*Status*: In Progress
+| None | - | - | - |
 
 ## Open Questions
 
@@ -38,7 +27,7 @@
 | Issue | Severity | Workaround | Status |
 |-------|----------|------------|--------|
 | Raw CPU Entity ID | Low | None | Pending (Needs mapping) |
-| Icon Refinement | Low | None | Pending |
+| Icon Refinement | Low | None | Resolved |
 
 ### Issue Details
 
@@ -53,7 +42,7 @@
 *Severity*: Low  
 *Impact*: Visual consistency.  
 *Fix Plan*: Review and update `icon` attributes in `sensor.py`.  
-*Status*: Pending
+*Status*: Resolved (Updated on 2026-03-02)
 
 ## Insights & Lessons Learned
 
