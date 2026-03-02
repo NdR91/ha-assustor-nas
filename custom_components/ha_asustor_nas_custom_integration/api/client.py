@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import asyncio
 import socket
 from typing import Any
 
 from pysnmp.error import PySnmpError
-from pysnmp.hlapi.v3arch import (
+from pysnmp.hlapi.v3arch.asyncio import (
     CommunityData,
     ContextData,
     ObjectIdentity,
@@ -54,19 +55,19 @@ class AsustorNasApiClient:
 
     def _get_data_sync(self, oids: list[str]) -> dict[str, Any]:
         """Get data for specific OIDs synchronously."""
-        try:
+        
+        async def _run_async() -> dict[str, Any]:
             # Initialize engine in the executor thread to avoid blocking the event loop
             snmp_engine = SnmpEngine()
+            transport = await UdpTransportTarget.create((self.host, self.port), timeout=5, retries=1)
             
-            iterator = get_cmd(
+            error_indication, error_status, error_index, var_binds = await get_cmd(
                 snmp_engine,
                 CommunityData(self.community, mpModel=1),  # mpModel=1 means SNMPv2c
-                UdpTransportTarget((self.host, self.port)),
+                transport,
                 ContextData(),
                 *[ObjectType(ObjectIdentity(oid)) for oid in oids],
             )
-
-            error_indication, error_status, error_index, var_binds = next(iterator)
 
             if error_indication:
                 err_str = str(error_indication)
@@ -86,6 +87,8 @@ class AsustorNasApiClient:
 
             return result
 
+        try:
+            return asyncio.run(_run_async())
         except (TimeoutError, socket.gaierror, PySnmpError) as err:
             raise AsustorNasConnectionError(f"Connection error to {self.host}: {err}") from err
         except Exception as err:
@@ -95,21 +98,21 @@ class AsustorNasApiClient:
 
     def _walk_table_sync(self, base_oid: str) -> dict[str, Any]:
         """Walk an SNMP table synchronously and return the results."""
-        try:
+        
+        async def _run_async() -> dict[str, Any]:
             # Initialize engine in the executor thread to avoid blocking the event loop
             snmp_engine = SnmpEngine()
+            transport = await UdpTransportTarget.create((self.host, self.port), timeout=5, retries=1)
             result = {}
             
-            iterator = next_cmd(
+            async for error_indication, error_status, error_index, var_binds in next_cmd(
                 snmp_engine,
                 CommunityData(self.community, mpModel=1),
-                UdpTransportTarget((self.host, self.port)),
+                transport,
                 ContextData(),
                 ObjectType(ObjectIdentity(base_oid)),
                 lexicographicMode=False,
-            )
-
-            for error_indication, error_status, error_index, var_binds in iterator:
+            ):
                 if error_indication:
                     raise AsustorNasConnectionError(f"SNMP error: {error_indication}")
 
@@ -124,6 +127,8 @@ class AsustorNasApiClient:
 
             return result
 
+        try:
+            return asyncio.run(_run_async())
         except (TimeoutError, socket.gaierror, PySnmpError) as err:
             raise AsustorNasConnectionError(f"Connection error walking {base_oid} on {self.host}: {err}") from err
         except Exception as err:
