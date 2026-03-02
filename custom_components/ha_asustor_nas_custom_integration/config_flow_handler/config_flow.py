@@ -111,12 +111,14 @@ class HomeAssistantAsustorNASCustomConfigFlowHandler(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 info = await validate_input(self.hass, user_input)
-            except CannotConnect:
+            except CannotConnect as err:
+                _LOGGER.error("Connection failed: %s", err)
                 errors["base"] = "cannot_connect"
-            except InvalidAuth:
+            except InvalidAuth as err:
+                _LOGGER.error("Auth failed: %s", err)
                 errors["base"] = "invalid_auth"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
+            except Exception as err:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception: %s", err)
                 errors["base"] = "unknown"
             else:
                 await self.async_set_unique_id(info["mac"])
