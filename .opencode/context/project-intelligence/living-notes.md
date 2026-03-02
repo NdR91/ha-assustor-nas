@@ -67,6 +67,11 @@
 
 ## Archive (Resolved Items)
 
+### Resolved: pysnmp 7.x Migration & Event Loop Blocking
+- **Resolved**: 2026-03-02
+- **Resolution**: Refactored `AsustorNasApiClient` to use `pysnmp.hlapi.v3arch.asyncio` inside `hass.async_add_executor_job` with `asyncio.run()`. This ensures MIB loading doesn't block the event loop while using the latest async-capable library.
+- **Learnings**: `pysnmp` 7.x `next_cmd` returns a list of results when awaited, not an async iterator. Result keys must use `str(name)` for pure numeric OIDs to match constants reliably.
+
 ### Resolved: Initial Architecture
 - **Resolved**: 2026-03-01
 - **Resolution**: Defined SNMP v2c, `pysnmp` library, and Coordinator pattern.

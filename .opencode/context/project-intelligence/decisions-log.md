@@ -4,6 +4,40 @@
 
 > Record major architectural and business decisions with full context. This prevents "why was this done?" debates.
 
+## Decision: Hybrid Async/Sync Pattern for SNMP
+
+**Date**: 2026-03-02
+**Status**: Decided
+**Owner**: @NdR91 / OpenCode
+
+### Context
+`pysnmp` 7.x performs synchronous disk I/O (MIB loading) even in its `asyncio` implementation. This triggers blocking call warnings in Home Assistant.
+
+### Decision
+Execute the `asyncio`-based `pysnmp` code inside `hass.async_add_executor_job` using `asyncio.run()`.
+
+### Rationale
+This is the only way to ensure that the synchronous MIB loading happens in a separate thread, keeping the Home Assistant event loop responsive while still using the modern `v3arch.asyncio` API.
+
+---
+
+## Decision: Use Numeric OIDs for Internal Mapping
+
+**Date**: 2026-03-02
+**Status**: Decided
+**Owner**: @NdR91 / OpenCode
+
+### Context
+`pysnmp` result keys can vary based on MIB resolution (e.g., `SNMPv2-SMI::enterprises...` vs numeric).
+
+### Decision
+Always convert result keys to pure numeric strings using `str(name)` before storing them in the data dictionary.
+
+### Rationale
+Ensures reliable lookups using the OID constants defined in `const.py`.
+
+---
+
 ## Decision: Use `pysnmp` 7.x (Lextudio)
 
 **Date**: 2026-03-01
