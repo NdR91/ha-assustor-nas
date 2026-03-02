@@ -32,14 +32,28 @@ _LOGGER = logging.getLogger(__name__)
 
 def _decode_hex_string(hex_str: str) -> str:
     """Decode a hex string returned by SNMP."""
+    hex_str = hex_str.strip()
+
     if hex_str.startswith("0x"):
         hex_str = hex_str[2:]
+
+    normalized = "".join(hex_str.split())
+
     try:
-        if " " in hex_str:
-            return bytes.fromhex(hex_str).decode("utf-8", errors="replace").strip()
-        return hex_str.strip()
+        if (
+            normalized
+            and len(normalized) % 2 == 0
+            and all(char in "0123456789abcdefABCDEF" for char in normalized)
+        ):
+            return (
+                bytes.fromhex(normalized)
+                .decode("utf-8", errors="replace")
+                .rstrip("\x00")
+                .strip()
+            )
+        return hex_str
     except ValueError:
-        return hex_str.strip()
+        return hex_str
 
 
 class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
