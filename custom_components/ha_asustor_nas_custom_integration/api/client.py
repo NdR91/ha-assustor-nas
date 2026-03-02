@@ -107,9 +107,9 @@ class AsustorNasApiClient:
             transport = await UdpTransportTarget.create((self.host, self.port), timeout=5, retries=1)
             result = {}
             
-            # In pysnmp 7.x v3arch, next_cmd is a coroutine that returns an async iterator
-            # so we must await it first
-            iterator = await next_cmd(
+            # In pysnmp 7.x v3arch, next_cmd returns a list of responses (a tuple of tuples)
+            # when awaited, not an async iterator.
+            responses = await next_cmd(
                 snmp_engine,
                 CommunityData(self.community, mpModel=1),
                 transport,
@@ -118,7 +118,7 @@ class AsustorNasApiClient:
                 lexicographicMode=False,
             )
 
-            async for error_indication, error_status, error_index, var_binds in iterator:
+            for error_indication, error_status, error_index, var_binds in responses:
                 if error_indication:
                     raise AsustorNasConnectionError(f"SNMP error: {error_indication}")
 
