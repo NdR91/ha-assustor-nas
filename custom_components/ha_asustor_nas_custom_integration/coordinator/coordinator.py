@@ -3,6 +3,7 @@
 from contextlib import suppress
 from datetime import timedelta
 import logging
+import re
 from typing import Any
 
 from homeassistant.core import HomeAssistant
@@ -18,6 +19,16 @@ from ..const import (
     OID_ASUSTOR_MODEL,
     OID_ASUSTOR_TEMP_CPU,
     OID_ASUSTOR_TEMP_SYS,
+    OID_HR_FS_MOUNT_POINT,
+    OID_HR_FS_STORAGE_INDEX,
+    OID_HR_FS_TABLE_BASE,
+    OID_HR_STORAGE_ALLOCATION_UNITS,
+    OID_HR_STORAGE_DESCR,
+    OID_HR_STORAGE_FIXED_DISK,
+    OID_HR_STORAGE_SIZE,
+    OID_HR_STORAGE_TABLE_BASE,
+    OID_HR_STORAGE_TYPE,
+    OID_HR_STORAGE_USED,
     OID_MEM_AVAIL,
     OID_MEM_BUFFER,
     OID_MEM_CACHED,
@@ -25,6 +36,7 @@ from ..const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+VOLUME_MOUNT_PATTERN = re.compile(r"^/volume\d+$")
 
 
 def _decode_hex_string(hex_str: str) -> str:
@@ -81,9 +93,11 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # 2. Fetch tabular data (walks)
             cpu_cores_data = await self.client.async_walk_table(OID_ASUSTOR_CPU_CORE_USAGE_BASE)
             fans_data = await self.client.async_walk_table(OID_ASUSTOR_FAN_RPM_BASE)
+            storage_data = await self.client.async_walk_table(OID_HR_STORAGE_TABLE_BASE)
+            fs_data = await self.client.async_walk_table(OID_HR_FS_TABLE_BASE)
 
             # 3. Process and aggregate data
-            return self._process_data(static_data, cpu_cores_data, fans_data)
+            return self._process_data(static_data, cpu_cores_data, fans_data, storage_data, fs_data)
 
         except AsustorNasAuthenticationError as exception:
             raise ConfigEntryAuthFailed(exception) from exception
@@ -95,6 +109,8 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         static_data: dict[str, Any],
         cpu_cores_data: dict[str, Any],
         fans_data: dict[str, Any],
+        storage_data: dict[str, Any],
+        fs_data: dict[str, Any],
     ) -> dict[str, Any]:
         """Process raw SNMP data into a structured dictionary."""
         processed: dict[str, Any] = {
@@ -104,6 +120,7 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "memory": {},
             "cpu_cores": {},
             "fans": {},
+            "volumes": {},
         }
 
         # Temperatures
@@ -171,4 +188,99 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for i, (_, value) in enumerate(sorted_fan_items, start=1):
             processed["fans"][str(i)] = int(value)
 
+        # Volumes (HOST-RESOURCES-MIB)
+        storage_rows: dict[str, dict[str, Any]] = {}
+        for oid, value in storage_data.items():
+            oid_str = str(oid)
+            idx = _extract_index(oid_str, OID_HR_STORAGE_TYPE, "hrStorageType")
+            if idx is not None:
+                storage_rows.setdefault(idx, {})["type"] = str(value)
+                continue
+
+            idx = _extract_index(oid_str, OID_HR_STORAGE_DESCR, "hrStorageDescr")
+            if idx is not None:
+                storage_rows.setdefault(idx, {})["descr"] = str(value)
+                continue
+
+            idx = _extract_index(oid_str, OID_HR_STORAGE_ALLOCATION_UNITS, "hrStorageAllocationUnits")
+            if idx is not None:
+                with suppress(ValueError):
+                    storage_rows.setdefault(idx, {})["alloc_units"] = int(value)
+                continue
+
+            idx = _extract_index(oid_str, OID_HR_STORAGE_SIZE, "hrStorageSize")
+            if idx is not None:
+                with suppress(ValueError):
+                    storage_rows.setdefault(idx, {})["size"] = int(value)
+                continue
+
+            idx = _extract_index(oid_str, OID_HR_STORAGE_USED, "hrStorageUsed")
+            if idx is not None:
+                with suppress(ValueError):
+                    storage_rows.setdefault(idx, {})["used"] = int(value)
+
+        fs_mount_points: dict[str, str] = {}
+        fs_storage_indexes: dict[str, int] = {}
+        for oid, value in fs_data.items():
+            oid_str = str(oid)
+
+            idx = _extract_index(oid_str, OID_HR_FS_MOUNT_POINT, "hrFSMountPoint")
+            if idx is not None:
+                fs_mount_points[idx] = str(value).strip('"')
+                continue
+
+            idx = _extract_index(oid_str, OID_HR_FS_STORAGE_INDEX, "hrFSStorageIndex")
+            if idx is not None:
+                with suppress(ValueError):
+                    fs_storage_indexes[idx] = int(value)
+
+        storage_to_mount: dict[str, str] = {}
+        for fs_idx, storage_idx in fs_storage_indexes.items():
+            mount_point = fs_mount_points.get(fs_idx)
+            if mount_point:
+                storage_to_mount[str(storage_idx)] = mount_point
+
+        for storage_idx, row in storage_rows.items():
+            storage_type = str(row.get("type", ""))
+            if "hrStorageFixedDisk" not in storage_type and storage_type != OID_HR_STORAGE_FIXED_DISK:
+                continue
+
+            mount_point = storage_to_mount.get(storage_idx, str(row.get("descr", ""))).strip('"')
+            if not VOLUME_MOUNT_PATTERN.fullmatch(mount_point):
+                continue
+
+            if mount_point == "/volume0":
+                continue
+
+            alloc_units = row.get("alloc_units")
+            size = row.get("size")
+            used = row.get("used")
+            if not isinstance(alloc_units, int) or not isinstance(size, int) or not isinstance(used, int):
+                continue
+
+            total_bytes = alloc_units * size
+            used_bytes = alloc_units * used
+            free_bytes = max(total_bytes - used_bytes, 0)
+            usage_percent = (used_bytes / total_bytes) * 100 if total_bytes > 0 else 0
+
+            processed["volumes"][storage_idx] = {
+                "name": mount_point,
+                "total_bytes": total_bytes,
+                "used_bytes": used_bytes,
+                "free_bytes": free_bytes,
+                "usage_percent": round(usage_percent, 2),
+            }
+
         return processed
+
+
+def _extract_index(oid: str, numeric_prefix: str, symbolic_name: str) -> str | None:
+    """Extract row index from numeric or symbolic table OID."""
+    if oid.startswith(f"{numeric_prefix}."):
+        return oid.rsplit(".", 1)[-1]
+
+    symbolic_token = f"{symbolic_name}."
+    if symbolic_token in oid:
+        return oid.rsplit(".", 1)[-1]
+
+    return None

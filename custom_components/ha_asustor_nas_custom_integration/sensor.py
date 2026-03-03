@@ -125,6 +125,51 @@ async def async_setup_entry(
         )
         entities.append(AsustorNasSensorEntity(coordinator, entry, description))
 
+    # 5. Add dynamic sensors (Volumes)
+    for volume_id, volume in data.get("volumes", {}).items():
+        volume_name = str(volume.get("name", f"volume{volume_id}")).lstrip("/")
+
+        volume_descriptions = (
+            AsustorNasSensorEntityDescription(
+                key=f"volume_{volume_id}_total",
+                name=f"{volume_name} Total",
+                icon="mdi:harddisk",
+                device_class=SensorDeviceClass.DATA_SIZE,
+                native_unit_of_measurement=UnitOfInformation.BYTES,
+                state_class=SensorStateClass.MEASUREMENT,
+                value_fn=lambda d, vid=volume_id: d.get("volumes", {}).get(vid, {}).get("total_bytes"),
+            ),
+            AsustorNasSensorEntityDescription(
+                key=f"volume_{volume_id}_used",
+                name=f"{volume_name} Used",
+                icon="mdi:harddisk",
+                device_class=SensorDeviceClass.DATA_SIZE,
+                native_unit_of_measurement=UnitOfInformation.BYTES,
+                state_class=SensorStateClass.MEASUREMENT,
+                value_fn=lambda d, vid=volume_id: d.get("volumes", {}).get(vid, {}).get("used_bytes"),
+            ),
+            AsustorNasSensorEntityDescription(
+                key=f"volume_{volume_id}_free",
+                name=f"{volume_name} Free",
+                icon="mdi:harddisk",
+                device_class=SensorDeviceClass.DATA_SIZE,
+                native_unit_of_measurement=UnitOfInformation.BYTES,
+                state_class=SensorStateClass.MEASUREMENT,
+                value_fn=lambda d, vid=volume_id: d.get("volumes", {}).get(vid, {}).get("free_bytes"),
+            ),
+            AsustorNasSensorEntityDescription(
+                key=f"volume_{volume_id}_usage_percent",
+                name=f"{volume_name} Usage",
+                icon="mdi:percent",
+                native_unit_of_measurement=PERCENTAGE,
+                state_class=SensorStateClass.MEASUREMENT,
+                value_fn=lambda d, vid=volume_id: d.get("volumes", {}).get(vid, {}).get("usage_percent"),
+            ),
+        )
+
+        for description in volume_descriptions:
+            entities.append(AsustorNasSensorEntity(coordinator, entry, description))
+
     async_add_entities(entities)
 
 
