@@ -7,18 +7,8 @@ from dataclasses import dataclass
 import logging
 from typing import Any
 
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorEntityDescription,
-    SensorStateClass,
-)
-from homeassistant.const import (
-    PERCENTAGE,
-    REVOLUTIONS_PER_MINUTE,
-    UnitOfInformation,
-    UnitOfTemperature,
-)
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription, SensorStateClass
+from homeassistant.const import PERCENTAGE, REVOLUTIONS_PER_MINUTE, UnitOfInformation, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -90,12 +80,11 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
     data = coordinator.data
 
-    entities: list[AsustorNasSensorEntity] = []
-
-    # 1. Add static sensors
-    for description in STATIC_SENSORS:
-        if description.value_fn(data) is not None:
-            entities.append(AsustorNasSensorEntity(coordinator, entry, description))
+    entities: list[AsustorNasSensorEntity] = [
+        AsustorNasSensorEntity(coordinator, entry, description)
+        for description in STATIC_SENSORS
+        if description.value_fn(data) is not None
+    ]
 
     # 2. Add dynamic sensors (CPU Cores)
     for core_id in data.get("cpu_cores", {}):

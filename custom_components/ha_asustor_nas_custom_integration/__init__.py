@@ -1,6 +1,4 @@
-"""
-Custom integration to integrate ASUSTOR NAS with Home Assistant.
-"""
+"""Custom integration to integrate ASUSTOR NAS with Home Assistant."""
 
 from __future__ import annotations
 

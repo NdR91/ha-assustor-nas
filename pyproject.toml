@@ -215,6 +215,7 @@ ignore = [
     "TC003", # Move standard library import {} into a type-checking block
     # Quotes for typing.cast generally not necessary, only for performance critical paths
     "TC006", # Add quotes to type expression in typing.cast()
+    "TID252", # Relative parent imports are acceptable in this integration package
 
     "TRY003", # Avoid specifying long messages outside the exception class
     "TRY400", # Use `logging.exception` instead of `logging.error`

@@ -75,7 +75,7 @@ class AsustorNasApiClient:
             if error_status:
                 raise AsustorNasApiClientError(
                     f"SNMP error status: {error_status.prettyPrint()} at "
-                    f"{error_index and var_binds[int(error_index) - 1][0] or '?'}"
+                    f"{(error_index and var_binds[int(error_index) - 1][0]) or '?'}"
                 )
 
             result = {}
@@ -128,7 +128,7 @@ class AsustorNasApiClient:
                 if error_status:
                     raise AsustorNasApiClientError(
                         f"SNMP error status: {error_status.prettyPrint()} at "
-                        f"{error_index and var_binds[int(error_index) - 1][0] or '?'}"
+                        f"{(error_index and var_binds[int(error_index) - 1][0]) or '?'}"
                     )
 
                 for name, val in var_binds:

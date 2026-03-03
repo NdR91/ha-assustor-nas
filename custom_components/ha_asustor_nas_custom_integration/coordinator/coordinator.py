@@ -1,5 +1,6 @@
 """Coordinator for ASUSTOR NAS SNMP integration."""
 
+from contextlib import suppress
 from datetime import timedelta
 import logging
 from typing import Any
@@ -8,11 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from ..api import (
-    AsustorNasApiClient,
-    AsustorNasAuthenticationError,
-    AsustorNasConnectionError,
-)
+from ..api import AsustorNasApiClient, AsustorNasAuthenticationError, AsustorNasConnectionError
 from ..const import (
     DOMAIN,
     OID_ASUSTOR_CPU_CORE_USAGE_BASE,
@@ -34,17 +31,17 @@ def _decode_hex_string(hex_str: str) -> str:
     """Decode a hex string returned by SNMP."""
     hex_str = hex_str.strip()
 
-    if hex_str.startswith("0x"):
-        hex_str = hex_str[2:]
+    hex_str = hex_str.removeprefix("0x")
 
     normalized = "".join(hex_str.split())
 
-    try:
-        if normalized and len(normalized) % 2 == 0 and all(char in "0123456789abcdefABCDEF" for char in normalized):
+    if normalized and len(normalized) % 2 == 0 and all(char in "0123456789abcdefABCDEF" for char in normalized):
+        try:
             return bytes.fromhex(normalized).decode("utf-8", errors="replace").rstrip("\x00").strip()
-        return hex_str
-    except ValueError:
-        return hex_str
+        except ValueError:
+            return hex_str
+
+    return hex_str
 
 
 class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -111,16 +108,12 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # Temperatures
         if OID_ASUSTOR_TEMP_CPU in static_data:
-            try:
+            with suppress(ValueError):
                 processed["temperatures"]["cpu"] = int(static_data[OID_ASUSTOR_TEMP_CPU])
-            except ValueError:
-                pass
 
         if OID_ASUSTOR_TEMP_SYS in static_data:
-            try:
+            with suppress(ValueError):
                 processed["temperatures"]["system"] = int(static_data[OID_ASUSTOR_TEMP_SYS])
-            except ValueError:
-                pass
 
         # Memory (Standard Linux UCD-SNMP-MIB)
         try:

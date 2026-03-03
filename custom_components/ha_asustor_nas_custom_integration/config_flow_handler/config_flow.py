@@ -12,11 +12,7 @@ from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT, CONF_SCAN_INTERV
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from ..api import (
-    AsustorNasApiClient,
-    AsustorNasAuthenticationError,
-    AsustorNasConnectionError,
-)
+from ..api import AsustorNasApiClient, AsustorNasAuthenticationError, AsustorNasConnectionError
 from ..const import (
     CONF_COMMUNITY,
     DEFAULT_COMMUNITY,
@@ -71,24 +67,26 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     # Find the first valid MAC address
     mac_address = None
-    for _oid, mac in mac_results.items():
-        if mac and len(mac) > 0:
-            # Format MAC address if it's returned as hex string
-            if isinstance(mac, str) and ":" in mac:
-                mac_address = mac
-                break
-            elif isinstance(mac, str) and len(mac) == 12:
-                # Format 001122334455 to 00:11:22:33:44:55
-                mac_address = ":".join(mac[i : i + 2] for i in range(0, 12, 2))
-                break
-            elif isinstance(mac, bytes):
-                mac_address = ":".join(f"{b:02x}" for b in mac)
-                break
-            elif isinstance(mac, str) and mac.startswith("0x") and len(mac) >= 14:
-                # Handle hex string like 0x001122334455
-                clean_mac = mac[2:]
-                mac_address = ":".join(clean_mac[i : i + 2] for i in range(0, 12, 2))
-                break
+    for mac in mac_results.values():
+        if not mac:
+            continue
+
+        # Format MAC address if it's returned as hex string
+        if isinstance(mac, str) and ":" in mac:
+            mac_address = mac
+            break
+        if isinstance(mac, str) and len(mac) == 12:
+            # Format 001122334455 to 00:11:22:33:44:55
+            mac_address = ":".join(mac[i : i + 2] for i in range(0, 12, 2))
+            break
+        if isinstance(mac, bytes):
+            mac_address = ":".join(f"{b:02x}" for b in mac)
+            break
+        if isinstance(mac, str) and mac.startswith("0x") and len(mac) >= 14:
+            # Handle hex string like 0x001122334455
+            clean_mac = mac[2:]
+            mac_address = ":".join(clean_mac[i : i + 2] for i in range(0, 12, 2))
+            break
 
     if not mac_address:
         # Fallback to host if no MAC address is found
@@ -115,8 +113,8 @@ class HomeAssistantAsustorNASCustomConfigFlowHandler(ConfigFlow, domain=DOMAIN):
             except InvalidAuth as err:
                 _LOGGER.error("Auth failed: %s", err)
                 errors["base"] = "invalid_auth"
-            except Exception as err:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception: %s", err)
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
                 await self.async_set_unique_id(info["mac"])
