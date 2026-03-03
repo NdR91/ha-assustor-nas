@@ -139,9 +139,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class AsustorNasSensorEntity(
-    CoordinatorEntity[AsustorNasDataUpdateCoordinator], SensorEntity
-):
+class AsustorNasSensorEntity(CoordinatorEntity[AsustorNasDataUpdateCoordinator], SensorEntity):
     """Representation of an ASUSTOR NAS sensor."""
 
     entity_description: AsustorNasSensorEntityDescription
@@ -179,7 +177,4 @@ class AsustorNasSensorEntity(
     def available(self) -> bool:
         """Return True if entity is available."""
         # The entity is available if the coordinator is successful and the value is not None
-        return (
-            super().available
-            and self.entity_description.value_fn(self.coordinator.data) is not None
-        )
+        return super().available and self.entity_description.value_fn(self.coordinator.data) is not None

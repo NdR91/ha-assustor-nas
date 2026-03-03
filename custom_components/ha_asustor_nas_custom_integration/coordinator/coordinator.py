@@ -40,17 +40,8 @@ def _decode_hex_string(hex_str: str) -> str:
     normalized = "".join(hex_str.split())
 
     try:
-        if (
-            normalized
-            and len(normalized) % 2 == 0
-            and all(char in "0123456789abcdefABCDEF" for char in normalized)
-        ):
-            return (
-                bytes.fromhex(normalized)
-                .decode("utf-8", errors="replace")
-                .rstrip("\x00")
-                .strip()
-            )
+        if normalized and len(normalized) % 2 == 0 and all(char in "0123456789abcdefABCDEF" for char in normalized):
+            return bytes.fromhex(normalized).decode("utf-8", errors="replace").rstrip("\x00").strip()
         return hex_str
     except ValueError:
         return hex_str
@@ -91,9 +82,7 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             static_data = await self.client.async_get_data(static_oids)
 
             # 2. Fetch tabular data (walks)
-            cpu_cores_data = await self.client.async_walk_table(
-                OID_ASUSTOR_CPU_CORE_USAGE_BASE
-            )
+            cpu_cores_data = await self.client.async_walk_table(OID_ASUSTOR_CPU_CORE_USAGE_BASE)
             fans_data = await self.client.async_walk_table(OID_ASUSTOR_FAN_RPM_BASE)
 
             # 3. Process and aggregate data
@@ -113,9 +102,7 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Process raw SNMP data into a structured dictionary."""
         processed: dict[str, Any] = {
             "model": static_data.get(OID_ASUSTOR_MODEL, "Unknown"),
-            "cpu_model": _decode_hex_string(
-                str(static_data.get(OID_ASUSTOR_CPU_MODEL, ""))
-            ),
+            "cpu_model": _decode_hex_string(str(static_data.get(OID_ASUSTOR_CPU_MODEL, ""))),
             "temperatures": {},
             "memory": {},
             "cpu_cores": {},
@@ -125,17 +112,13 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Temperatures
         if OID_ASUSTOR_TEMP_CPU in static_data:
             try:
-                processed["temperatures"]["cpu"] = int(
-                    static_data[OID_ASUSTOR_TEMP_CPU]
-                )
+                processed["temperatures"]["cpu"] = int(static_data[OID_ASUSTOR_TEMP_CPU])
             except ValueError:
                 pass
 
         if OID_ASUSTOR_TEMP_SYS in static_data:
             try:
-                processed["temperatures"]["system"] = int(
-                    static_data[OID_ASUSTOR_TEMP_SYS]
-                )
+                processed["temperatures"]["system"] = int(static_data[OID_ASUSTOR_TEMP_SYS])
             except ValueError:
                 pass
 

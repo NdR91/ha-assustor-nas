@@ -41,9 +41,7 @@ class AsustorNasAuthenticationError(AsustorNasApiClientError):
 class AsustorNasApiClient:
     """API Client for ASUSTOR NAS via SNMP."""
 
-    def __init__(
-        self, hass: HomeAssistant, host: str, community: str, port: int = DEFAULT_PORT
-    ) -> None:
+    def __init__(self, hass: HomeAssistant, host: str, community: str, port: int = DEFAULT_PORT) -> None:
         """Initialize the API client."""
         self.hass = hass
         self.host = host
@@ -54,12 +52,12 @@ class AsustorNasApiClient:
 
     def _get_data_sync(self, oids: list[str]) -> dict[str, Any]:
         """Get data for specific OIDs synchronously."""
-        
+
         async def _run_async() -> dict[str, Any]:
             # Initialize engine in the executor thread to avoid blocking the event loop
             snmp_engine = SnmpEngine()
             transport = await UdpTransportTarget.create((self.host, self.port), timeout=5, retries=1)
-            
+
             error_indication, error_status, error_index, var_binds = await get_cmd(
                 snmp_engine,
                 CommunityData(self.community, mpModel=1),  # mpModel=1 means SNMPv2c
@@ -99,13 +97,13 @@ class AsustorNasApiClient:
 
     def _walk_table_sync(self, base_oid: str) -> dict[str, Any]:
         """Walk an SNMP table synchronously and return the results."""
-        
+
         async def _run_async() -> dict[str, Any]:
             # Initialize engine in the executor thread to avoid blocking the event loop
             snmp_engine = SnmpEngine()
             transport = await UdpTransportTarget.create((self.host, self.port), timeout=5, retries=1)
             result = {}
-            
+
             # In pysnmp 7.x v3arch, next_cmd returns a list of responses (a tuple of tuples)
             # when awaited, not an async iterator.
             responses = await next_cmd(
@@ -121,9 +119,9 @@ class AsustorNasApiClient:
                 # Handle potential None or malformed rows from pysnmp 7.x
                 if not row or len(row) != 4:
                     continue
-                    
+
                 error_indication, error_status, error_index, var_binds = row
-                
+
                 if error_indication:
                     raise AsustorNasConnectionError(f"SNMP error: {error_indication}")
 

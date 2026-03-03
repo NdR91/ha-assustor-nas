@@ -4,7 +4,7 @@
 [![GitHub Release](https://img.shields.io/github/release/NdR91/ha-assustor-nas.svg)](https://github.com/NdR91/ha-assustor-nas/releases)
 [![License](https://img.shields.io/github/license/NdR91/ha-assustor-nas.svg)](LICENSE)
 
-## A Personal Note on This Integration
+## 👋🏻 A Personal Note on This Integration
 
 I am a technology enthusiast working as a Sales Engineer in an Italian tech company, with a strong focus on Generative AI. I do not come from a traditional software development background, so building this integration was a real challenge from day one.
 
@@ -88,6 +88,10 @@ This integration was built following strict Home Assistant Core standards:
 ## 🤝 Contributing
 
 Contributions are welcome! If you find a bug or have a feature request, please open an issue. If you want to contribute code, feel free to open a pull request.
+
+## 🗂️ Repository Note
+
+This repository includes an `.opencode/` directory to keep AI-assisted development context and decisions transparent and traceable over time.
 
 ## 📄 License
 
