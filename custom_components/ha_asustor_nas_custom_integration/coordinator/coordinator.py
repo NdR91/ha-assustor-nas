@@ -204,20 +204,23 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             idx = _extract_index(oid_str, OID_HR_STORAGE_ALLOCATION_UNITS, "hrStorageAllocationUnits")
             if idx is not None:
-                with suppress(ValueError):
-                    storage_rows.setdefault(idx, {})["alloc_units"] = int(value)
+                parsed_value = _parse_int_value(value)
+                if parsed_value is not None:
+                    storage_rows.setdefault(idx, {})["alloc_units"] = parsed_value
                 continue
 
             idx = _extract_index(oid_str, OID_HR_STORAGE_SIZE, "hrStorageSize")
             if idx is not None:
-                with suppress(ValueError):
-                    storage_rows.setdefault(idx, {})["size"] = int(value)
+                parsed_value = _parse_int_value(value)
+                if parsed_value is not None:
+                    storage_rows.setdefault(idx, {})["size"] = parsed_value
                 continue
 
             idx = _extract_index(oid_str, OID_HR_STORAGE_USED, "hrStorageUsed")
             if idx is not None:
-                with suppress(ValueError):
-                    storage_rows.setdefault(idx, {})["used"] = int(value)
+                parsed_value = _parse_int_value(value)
+                if parsed_value is not None:
+                    storage_rows.setdefault(idx, {})["used"] = parsed_value
 
         fs_mount_points: dict[str, str] = {}
         fs_storage_indexes: dict[str, int] = {}
@@ -231,8 +234,9 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             idx = _extract_index(oid_str, OID_HR_FS_STORAGE_INDEX, "hrFSStorageIndex")
             if idx is not None:
-                with suppress(ValueError):
-                    fs_storage_indexes[idx] = int(value)
+                parsed_value = _parse_int_value(value)
+                if parsed_value is not None:
+                    fs_storage_indexes[idx] = parsed_value
 
         storage_to_mount: dict[str, str] = {}
         for fs_idx, storage_idx in fs_storage_indexes.items():
@@ -271,6 +275,8 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "usage_percent": round(usage_percent, 2),
             }
 
+        _LOGGER.debug("Processed %d storage rows and exposed %d root volumes", len(storage_rows), len(processed["volumes"]))
+
         return processed
 
 
@@ -282,5 +288,16 @@ def _extract_index(oid: str, numeric_prefix: str, symbolic_name: str) -> str | N
     symbolic_token = f"{symbolic_name}."
     if symbolic_token in oid:
         return oid.rsplit(".", 1)[-1]
+
+    return None
+
+
+def _parse_int_value(value: Any) -> int | None:
+    """Parse integer-like SNMP values, including forms like '4096 Bytes'."""
+    raw = str(value).strip()
+    token = raw.split(maxsplit=1)[0] if raw else ""
+
+    with suppress(ValueError):
+        return int(token)
 
     return None
