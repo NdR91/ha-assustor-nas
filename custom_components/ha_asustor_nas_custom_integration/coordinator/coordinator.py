@@ -147,20 +147,17 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             mem_cached = int(static_data.get(OID_MEM_CACHED, 0))
 
             if mem_total > 0:
-                # Convert kB to MB for easier display
-                mem_total_mb = mem_total / 1024
-                mem_avail_mb = mem_avail / 1024
-                mem_buffer_mb = mem_buffer / 1024
-                mem_cached_mb = mem_cached / 1024
+                mem_used = max(mem_total - (mem_avail + mem_buffer + mem_cached), 0)
+                mem_usage_percent = (mem_used / mem_total) * 100
 
-                mem_used_mb = mem_total_mb - (
-                    mem_avail_mb + mem_buffer_mb + mem_cached_mb
-                )
-                mem_usage_percent = (mem_used_mb / mem_total_mb) * 100
+                # Convert kB to GB for easier dashboard readability
+                kib_per_gib = 1024 * 1024
+                mem_total_gb = mem_total / kib_per_gib
+                mem_used_gb = mem_used / kib_per_gib
 
                 processed["memory"] = {
-                    "total_mb": round(mem_total_mb, 2),
-                    "used_mb": round(mem_used_mb, 2),
+                    "total_gb": round(mem_total_gb, 1),
+                    "used_gb": round(mem_used_gb, 1),
                     "usage_percent": round(mem_usage_percent, 2),
                 }
         except ValueError:

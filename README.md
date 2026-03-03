@@ -4,25 +4,21 @@
 [![GitHub Release](https://img.shields.io/github/release/NdR91/ha-assustor-nas.svg)](https://github.com/NdR91/ha-assustor-nas/releases)
 [![License](https://img.shields.io/github/license/NdR91/ha-assustor-nas.svg)](LICENSE)
 
-## 👋 The Honest Story Behind This Project
+## A Personal Note on This Integration
 
-I am a technology enthusiast working as a Sales Engineer in an Italian Tech company, where part of my role is specifically focused on Generative AI. I do not have a software development background (I only have a basic understanding of the fundamentals).
+I am a technology enthusiast working as a Sales Engineer in an Italian tech company, with a strong focus on Generative AI. I do not come from a traditional software development background, so building this integration was a real challenge from day one.
 
-However, out of personal interest and continuous learning, I frequently experiment with next-generation AI coding agents like Google Antigravity and, more recently and stably, the open-source solution **OpenCode**.
+The idea was simple: create a practical and reliable way to monitor ASUSTOR NAS devices in Home Assistant without complex YAML setups or fragile reverse-engineered APIs.
 
-When I noticed a lack of a solid, native Home Assistant integration for monitoring ASUSTOR NAS devices (without relying on complex YAML configurations or reverse-engineering undocumented web APIs), I decided to build one. But I immediately hit a wall: I didn't know how to code it.
+With patience, many iterations, and AI-assisted development, this project gradually became stable enough for daily use.
 
-Fortunately, we live in the age of AI. Through what is often called "vibecoding"—with a lot of patience, trial and error, and continuous iteration—I guided AI tools to build this component from scratch.
+👉 **This integration is developed with substantial AI support.**
 
-👉 **This integration is developed 100% with the help of AI.**
+Because of that, some parts may still look unconventional. Feedback, reviews, and pull requests are always welcome: this project improves release after release with community input.
 
-The decision to publish this repository is driven by two main reasons:
-1. **Sharing the experience**: I've included the context files used by OpenCode (like the `.opencode/` directory and `AGENTS.md`) to help others understand how these agentic systems analyze, reason, and interpret a real codebase.
-2. **It actually works**: I use it daily, and it has proven to be genuinely useful and reliable for monitoring my NAS.
+This is an open and evolving project.
 
-Because this project was built entirely by AI, some parts of the code might look "unusual" or not perfectly idiomatic. For this reason, **everyone is invited to read and review the code**. Pull requests, suggestions, and improvements are more than welcome, and issues will be evaluated—often together with AI! 🙂
-
-This is an open, honest, and evolving project.
+> This project is an independent community integration and is not affiliated with or endorsed by ASUSTOR Inc.
 
 ---
 
@@ -36,6 +32,7 @@ This integration connects to your ASUSTOR NAS via **SNMP v2c** to provide real-t
   - Every Fan (RPM)
   - Every Temperature Sensor (CPU, System/Motherboard)
 - **Accurate Memory Calculation**: Calculates real memory usage (Total - Free - Buffers - Cache) to match the ADM Activity Monitor UI, rather than relying on raw SNMP "Free" memory which is often misleading on Linux systems.
+- **Readable Memory Units**: Exposes Total/Used memory in GB for cleaner dashboard readability.
 - **Centralized Polling**: Uses Home Assistant's `DataUpdateCoordinator` to fetch all data in a single, efficient asynchronous cycle, preventing network spam and timeouts.
 
 ## 🛠️ Prerequisites
@@ -84,7 +81,7 @@ Before installing this integration, you must enable SNMP on your ASUSTOR NAS:
 This integration was built following strict Home Assistant Core standards:
 
 - **Why SNMP v2c?** It's native, lightweight, and doesn't require reverse-engineering undocumented ADM web APIs. It provides a stable and standardized way to monitor hardware.
-- **Why `pysnmp-lextudio`?** Home Assistant strictly forbids blocking I/O in the main event loop. `pysnmp-lextudio` is a modern, pure-Python library that natively supports `asyncio`, making it perfect for our `DataUpdateCoordinator`.
+- **Why `pysnmp` 7.x?** Home Assistant strictly forbids blocking I/O in the main event loop. `pysnmp` 7.x is the maintained upstream package and supports modern asyncio APIs used by this integration.
 - **Unique ID Strategy**: ASUSTOR NAS devices do not expose a Serial Number via the standard `ENTITY-MIB`. To ensure a stable `unique_id` (so Home Assistant recognizes the device even if its IP changes), the integration fetches the MAC address of the first network interface via `IF-MIB`.
 - **Memory Calculation**: The ASUSTOR Enterprise MIB only exposes "Free" memory. On Linux, this value is almost zero because unused RAM is used for caching. To provide a "Memory Usage" percentage that matches the ADM web UI, we use the standard Linux `UCD-SNMP-MIB` to calculate: `Total - (Free + Buffers + Cache)`.
 

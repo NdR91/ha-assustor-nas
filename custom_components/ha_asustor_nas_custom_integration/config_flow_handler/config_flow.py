@@ -71,7 +71,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     # Find the first valid MAC address
     mac_address = None
-    for oid, mac in mac_results.items():
+    for _oid, mac in mac_results.items():
         if mac and len(mac) > 0:
             # Format MAC address if it's returned as hex string
             if isinstance(mac, str) and ":" in mac:
@@ -84,7 +84,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
             elif isinstance(mac, bytes):
                 mac_address = ":".join(f"{b:02x}" for b in mac)
                 break
-            elif mac.startswith("0x"):
+            elif isinstance(mac, str) and mac.startswith("0x") and len(mac) >= 14:
                 # Handle hex string like 0x001122334455
                 clean_mac = mac[2:]
                 mac_address = ":".join(clean_mac[i : i + 2] for i in range(0, 12, 2))
