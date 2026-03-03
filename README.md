@@ -32,7 +32,7 @@ This integration connects to your ASUSTOR NAS via **SNMP v2c** to provide real-t
   - Every Fan (RPM)
   - Every Temperature Sensor (CPU, System/Motherboard)
 - **Accurate Memory Calculation**: Calculates real memory usage (Total - Free - Buffers - Cache) to match the ADM Activity Monitor UI, rather than relying on raw SNMP "Free" memory which is often misleading on Linux systems.
-- **Readable Memory Units**: Exposes Total/Used memory in GB for cleaner dashboard readability.
+- **Memory Metrics**: Exposes Total/Used memory as Home Assistant data-size sensors and memory usage percentage.
 - **Centralized Polling**: Uses Home Assistant's `DataUpdateCoordinator` to fetch all data in a single, efficient asynchronous cycle, preventing network spam and timeouts.
 
 ## 🛠️ Prerequisites

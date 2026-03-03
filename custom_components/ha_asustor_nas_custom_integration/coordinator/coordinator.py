@@ -126,14 +126,13 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 mem_used = max(mem_total - (mem_avail + mem_buffer + mem_cached), 0)
                 mem_usage_percent = (mem_used / mem_total) * 100
 
-                # Convert kB to GB for easier dashboard readability
-                kib_per_gib = 1024 * 1024
-                mem_total_gb = mem_total / kib_per_gib
-                mem_used_gb = mem_used / kib_per_gib
+                # Convert kB to MB for Home Assistant native DATA_SIZE handling
+                mem_total_mb = mem_total / 1024
+                mem_used_mb = mem_used / 1024
 
                 processed["memory"] = {
-                    "total_gb": round(mem_total_gb, 1),
-                    "used_gb": round(mem_used_gb, 1),
+                    "total_mb": round(mem_total_mb, 2),
+                    "used_mb": round(mem_used_mb, 2),
                     "usage_percent": round(mem_usage_percent, 2),
                 }
         except ValueError:
