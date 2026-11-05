@@ -104,7 +104,8 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except AsustorNasConnectionError as exception:
             raise UpdateFailed(exception) from exception
 
-    def _process_data(
+    # Keep indexed SNMP table correlation and aggregation together so cross-table row mapping stays explicit.
+    def _process_data(  # noqa: C901
         self,
         static_data: dict[str, Any],
         cpu_cores_data: dict[str, Any],
@@ -275,7 +276,9 @@ class AsustorNasDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "usage_percent": round(usage_percent, 2),
             }
 
-        _LOGGER.debug("Processed %d storage rows and exposed %d root volumes", len(storage_rows), len(processed["volumes"]))
+        _LOGGER.debug(
+            "Processed %d storage rows and exposed %d root volumes", len(storage_rows), len(processed["volumes"])
+        )
 
         return processed
 
