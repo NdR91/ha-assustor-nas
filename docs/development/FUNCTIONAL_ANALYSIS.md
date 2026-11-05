@@ -47,6 +47,7 @@ The Coordinator will perform SNMP WALK/BULK operations on the following branches
 | Fan RPM | `...2.4.1.2.*` | None | `measurement` | `RPM` |
 | Temperatures | `...2.5.1.*` | `temperature` | `measurement` | `°C` |
 | Memory (Standard) | `1.3.6.1.4.1.2021.4` | `data_size` | `measurement` | `MB` / `%` |
+| Volumes (Standard) | `1.3.6.1.2.1.25.2.3.1` + `1.3.6.1.2.1.25.3.8.1` | `data_size` / None | `measurement` | `B` / `%` |
 
 ### 4.3 Detailed Table Mappings (Based on SNMP Walk)
 
@@ -64,6 +65,25 @@ The Coordinator will perform SNMP WALK/BULK operations on the following branches
 - `...2.1` = CPU Temperature (e.g., `55` °C)
 - `...3.1` = System/Motherboard Temperature (e.g., `42` °C)
 
+**Storage Tables (Standard `HOST-RESOURCES-MIB`)**:
+- `1.3.6.1.2.1.25.2.3.1.2` = `hrStorageType`
+- `1.3.6.1.2.1.25.2.3.1.3` = `hrStorageDescr`
+- `1.3.6.1.2.1.25.2.3.1.4` = `hrStorageAllocationUnits`
+- `1.3.6.1.2.1.25.2.3.1.5` = `hrStorageSize`
+- `1.3.6.1.2.1.25.2.3.1.6` = `hrStorageUsed`
+- `1.3.6.1.2.1.25.3.8.1.2` = `hrFSMountPoint`
+- `1.3.6.1.2.1.25.3.8.1.7` = `hrFSStorageIndex`
+
+*Volume entity derivation*:
+- Include only `hrStorageFixedDisk` rows mapped to root mount points matching `/volumeN`.
+- Exclude technical/system mounts (for example `/volume0`, snapshot/plugin/internal mounts).
+
+*Calculations*:
+- `total_bytes = hrStorageSize * hrStorageAllocationUnits`
+- `used_bytes = hrStorageUsed * hrStorageAllocationUnits`
+- `free_bytes = total_bytes - used_bytes`
+- `usage_percent = (used_bytes / total_bytes) * 100`
+
 ## 5. Technical Stack & Dependencies
 - **SNMP Library**: `pysnmp-lextudio` (Async-native, pure Python, fully compatible with Home Assistant and HACS).
 - **I/O**: Strictly asynchronous (`asyncio`). No blocking calls in the HA event loop.
@@ -71,9 +91,9 @@ The Coordinator will perform SNMP WALK/BULK operations on the following branches
 ## 6. Error Handling & Resilience
 - **Timeout/Unreachable**: Handled by the Coordinator. Entities will automatically become `unavailable` (`_attr_available = False`).
 - **Data Parsing Errors**: Logged at `WARNING` or `ERROR` level without crashing the integration loop.
-- **Dynamic Entities**: The Coordinator will perform an `snmpwalk` on tabular branches at each cycle. If a new index is detected (e.g., a new fan or temperature sensor), the integration will dynamically delegate the creation of the new entity to HA at runtime.
+- **Dynamic Entities**: The Coordinator performs `snmpwalk` on tabular branches at each cycle. If a new index is detected, entities are created dynamically at runtime (CPU cores, fans, and volumes).
 
 ## 7. Future Scope (V2)
 - SNMP v3 Support (AuthPriv).
-- Disk/Volume monitoring (if exposed via standard HOST-RESOURCES-MIB or ASUSTOR enterprise MIB).
+- Storage health and disk-level metrics (if exposed by ASUSTOR enterprise MIBs on all models).
 - Network interface monitoring.

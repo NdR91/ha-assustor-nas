@@ -19,5 +19,18 @@
     "abort": {
       "already_configured": "Device is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Resolve legacy volume sensors",
+        "description": "Choose which existing entity to keep for each ambiguous volume sensor. Other legacy entities remain in the registry unchanged.",
+        "data": {},
+        "data_description": {}
+      }
+    },
+    "error": {
+      "invalid_selection": "Choose one of the listed existing entities."
+    }
   }
 }

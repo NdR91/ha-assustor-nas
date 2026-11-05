@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 from .coordinator import AsustorNasDataUpdateCoordinator
 from .data import AsustorNasConfigEntry
+from .volume_identity import migrate_volume_entities, volume_entity_key, volume_identity, volume_value_for_mount
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,7 +80,17 @@ async def async_setup_entry(
     """Set up the sensor platform."""
     coordinator = entry.runtime_data.coordinator
     data = coordinator.data
-    registered_volume_ids: set[str] = set()
+    registered_volume_metrics: set[tuple[str, str]] = set()
+    blocked_volume_metrics: set[tuple[str, str]] = set()
+
+    blocked_volume_metrics.update(
+        migrate_volume_entities(
+            hass,
+            entry.entry_id,
+            data.get("volumes", {}),
+            entry.options.get("volume_migrations", {}),
+        )
+    )
 
     entities: list[AsustorNasSensorEntity] = [
         AsustorNasSensorEntity(coordinator, entry, description)
@@ -87,46 +98,57 @@ async def async_setup_entry(
         if description.value_fn(data) is not None
     ]
 
-    def _build_volume_entities(volume_id: str, volume_name: str) -> list[AsustorNasSensorEntity]:
+    def _build_volume_entities(volume_name: str) -> list[AsustorNasSensorEntity]:
+        identity = volume_identity(volume_name)
+        if identity is None:
+            return []
+        mount_path = f"/{identity}"
         volume_descriptions = (
             AsustorNasSensorEntityDescription(
-                key=f"volume_{volume_id}_total",
+                key=volume_entity_key(identity, "total"),
                 name=f"{volume_name} Total",
                 icon="mdi:harddisk",
                 device_class=SensorDeviceClass.DATA_SIZE,
                 native_unit_of_measurement=UnitOfInformation.BYTES,
                 state_class=SensorStateClass.MEASUREMENT,
-                value_fn=lambda d, vid=volume_id: d.get("volumes", {}).get(vid, {}).get("total_bytes"),
+                value_fn=lambda d, mount=mount_path: volume_value_for_mount(d, mount, "total_bytes"),
             ),
             AsustorNasSensorEntityDescription(
-                key=f"volume_{volume_id}_used",
+                key=volume_entity_key(identity, "used"),
                 name=f"{volume_name} Used",
                 icon="mdi:harddisk",
                 device_class=SensorDeviceClass.DATA_SIZE,
                 native_unit_of_measurement=UnitOfInformation.BYTES,
                 state_class=SensorStateClass.MEASUREMENT,
-                value_fn=lambda d, vid=volume_id: d.get("volumes", {}).get(vid, {}).get("used_bytes"),
+                value_fn=lambda d, mount=mount_path: volume_value_for_mount(d, mount, "used_bytes"),
             ),
             AsustorNasSensorEntityDescription(
-                key=f"volume_{volume_id}_free",
+                key=volume_entity_key(identity, "free"),
                 name=f"{volume_name} Free",
                 icon="mdi:harddisk",
                 device_class=SensorDeviceClass.DATA_SIZE,
                 native_unit_of_measurement=UnitOfInformation.BYTES,
                 state_class=SensorStateClass.MEASUREMENT,
-                value_fn=lambda d, vid=volume_id: d.get("volumes", {}).get(vid, {}).get("free_bytes"),
+                value_fn=lambda d, mount=mount_path: volume_value_for_mount(d, mount, "free_bytes"),
             ),
             AsustorNasSensorEntityDescription(
-                key=f"volume_{volume_id}_usage_percent",
+                key=volume_entity_key(identity, "usage_percent"),
                 name=f"{volume_name} Usage",
                 icon="mdi:percent",
                 native_unit_of_measurement=PERCENTAGE,
                 state_class=SensorStateClass.MEASUREMENT,
-                value_fn=lambda d, vid=volume_id: d.get("volumes", {}).get(vid, {}).get("usage_percent"),
+                value_fn=lambda d, mount=mount_path: volume_value_for_mount(d, mount, "usage_percent"),
             ),
         )
 
-        return [AsustorNasSensorEntity(coordinator, entry, description) for description in volume_descriptions]
+        new_entities = []
+        for description, metric in zip(volume_descriptions, ("total", "used", "free", "usage_percent"), strict=True):
+            metric_identity = (identity, metric)
+            if metric_identity in blocked_volume_metrics or metric_identity in registered_volume_metrics:
+                continue
+            registered_volume_metrics.add(metric_identity)
+            new_entities.append(AsustorNasSensorEntity(coordinator, entry, description))
+        return new_entities
 
     # 2. Add dynamic sensors (CPU Cores)
     for core_id in data.get("cpu_cores", {}):
@@ -171,8 +193,10 @@ async def async_setup_entry(
     for volume_id, volume in data.get("volumes", {}).items():
         volume_id_str = str(volume_id)
         volume_name = str(volume.get("name", f"volume{volume_id_str}")).lstrip("/")
-        registered_volume_ids.add(volume_id_str)
-        entities.extend(_build_volume_entities(volume_id_str, volume_name))
+        identity = volume_identity(f"/{volume_name}")
+        if identity is None:
+            continue
+        entities.extend(_build_volume_entities(volume_name))
 
     async_add_entities(entities)
 
@@ -180,14 +204,24 @@ async def async_setup_entry(
     def _async_add_missing_volume_entities() -> None:
         new_entities: list[AsustorNasSensorEntity] = []
 
+        blocked_volume_metrics.clear()
+        blocked_volume_metrics.update(
+            migrate_volume_entities(
+                hass,
+                entry.entry_id,
+                coordinator.data.get("volumes", {}),
+                entry.options.get("volume_migrations", {}),
+            )
+        )
+
         for volume_id, volume in coordinator.data.get("volumes", {}).items():
             volume_id_str = str(volume_id)
-            if volume_id_str in registered_volume_ids:
+            volume_name = str(volume.get("name", f"volume{volume_id_str}")).lstrip("/")
+            identity = volume_identity(f"/{volume_name}")
+            if identity is None:
                 continue
 
-            volume_name = str(volume.get("name", f"volume{volume_id_str}")).lstrip("/")
-            registered_volume_ids.add(volume_id_str)
-            new_entities.extend(_build_volume_entities(volume_id_str, volume_name))
+            new_entities.extend(_build_volume_entities(volume_name))
 
         if new_entities:
             _LOGGER.debug("Adding %d new volume sensor entities", len(new_entities))

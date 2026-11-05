@@ -7,10 +7,11 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_PORT, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import selector
 
 from ..api import AsustorNasApiClient, AsustorNasAuthenticationError, AsustorNasConnectionError
 from ..const import (
@@ -22,6 +23,7 @@ from ..const import (
     OID_ASUSTOR_MODEL,
     OID_MAC_ADDRESS_BASE,
 )
+from ..volume_identity import volume_migration_conflicts
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,6 +102,11 @@ class HomeAssistantAsustorNASCustomConfigFlowHandler(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        """Return the options flow for explicit volume migration choices."""
+        return AsustorNasOptionsFlowHandler()
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
@@ -126,6 +133,70 @@ class HomeAssistantAsustorNASCustomConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=info["title"], data=user_input)
 
         return self.async_show_form(step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors)
+
+
+class AsustorNasOptionsFlowHandler(OptionsFlow):
+    """Handle explicit choices for ambiguous legacy volume sensors."""
+
+    async def async_step_init(self, user_input: dict[str, str] | None = None) -> ConfigFlowResult:
+        """Show one selector for each ambiguous legacy volume metric."""
+        entry = self.config_entry
+        coordinator = getattr(getattr(entry, "runtime_data", None), "coordinator", None)
+        volumes = coordinator.data.get("volumes", {}) if coordinator else {}
+        conflicts = volume_migration_conflicts(self.hass, entry.entry_id, volumes)
+
+        if user_input is not None:
+            options, errors = merge_volume_migration_options(entry.options, conflicts, user_input)
+            if not errors:
+                return self.async_create_entry(title="", data=options)
+
+        schema_fields = {}
+        for option_key, candidates in conflicts.items():
+            options = [{"label": entity_id, "value": unique_id} for entity_id, unique_id in candidates]
+            current = entry.options.get("volume_migrations", {}).get(option_key)
+            field_name = _volume_conflict_label(option_key)
+            field = (
+                vol.Required(field_name, default=current)
+                if current in {item["value"] for item in options}
+                else vol.Required(field_name)
+            )
+            schema_fields[field] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=options,
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema_fields),
+            errors=errors if user_input is not None else {},
+        )
+
+
+def _volume_conflict_label(option_key: str) -> str:
+    """Make dynamic conflict fields readable in the options form."""
+    return option_key.removeprefix("volume_").replace("_", " ")
+
+
+def merge_volume_migration_options(
+    existing_options: dict[str, Any],
+    conflicts: dict[str, list[tuple[str, str]]],
+    user_input: dict[str, str],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Validate explicit conflict selections without dropping other options."""
+    migrations = dict(existing_options.get("volume_migrations", {}))
+    errors: dict[str, str] = {}
+    for option_key, candidates in conflicts.items():
+        field_name = _volume_conflict_label(option_key)
+        selection = user_input.get(field_name)
+        if selection not in {unique_id for _, unique_id in candidates}:
+            errors[field_name] = "invalid_selection"
+        else:
+            migrations[option_key] = selection
+    options = dict(existing_options)
+    options["volume_migrations"] = migrations
+    return options, errors
 
 
 class CannotConnect(HomeAssistantError):

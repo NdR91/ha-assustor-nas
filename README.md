@@ -31,9 +31,38 @@ This integration connects to your ASUSTOR NAS via **SNMP v2c** to provide real-t
   - Every CPU Core (Usage %)
   - Every Fan (RPM)
   - Every Temperature Sensor (CPU, System/Motherboard)
+  - NAS Volumes exposed as root mounts (`/volumeN`) with Total/Used/Free/Usage
 - **Accurate Memory Calculation**: Calculates real memory usage (Total - Free - Buffers - Cache) to match the ADM Activity Monitor UI, rather than relying on raw SNMP "Free" memory which is often misleading on Linux systems.
 - **Memory Metrics**: Exposes Total/Used memory as Home Assistant data-size sensors and memory usage percentage.
 - **Centralized Polling**: Uses Home Assistant's `DataUpdateCoordinator` to fetch all data in a single, efficient asynchronous cycle, preventing network spam and timeouts.
+
+## 📊 Exposed Sensors
+
+The integration exposes a mix of static and dynamic sensors.
+
+### Static Sensors
+- `Model`
+- `CPU Model`
+- `Total Memory`
+- `Used Memory`
+- `Memory Usage`
+
+### Dynamic Sensors
+- `CPU Core <n> Usage`
+- `Fan <n>`
+- `CPU Temperature`
+- `System Temperature`
+
+### Volume Sensors (per discovered root volume)
+For each detected root volume (for example `volume1`, `volume2`), the integration creates:
+- `<volume> Total`
+- `<volume> Used`
+- `<volume> Free`
+- `<volume> Usage`
+
+Notes:
+- Volume sensors are discovered from `HOST-RESOURCES-MIB` and mapped through filesystem mount points.
+- The integration includes root mounts like `/volume1`, `/volume2` and excludes technical mounts to avoid duplicates/noise.
 
 ## 🛠️ Prerequisites
 
@@ -47,15 +76,11 @@ Before installing this integration, you must enable SNMP on your ASUSTOR NAS:
 
 ## 📦 Installation
 
-### Method 1: HACS (Recommended)
+### Method 1: Marketplace (Recommended)
 
-1. Open Home Assistant and navigate to **HACS**.
-2. Click on **Integrations**.
-3. Click the three dots in the top right corner and select **Custom repositories**.
-4. Add the URL of this repository (`https://github.com/NdR91/ha-assustor-nas`) and select **Integration** as the category.
-5. Click **Add**.
-6. Search for "ASUSTOR NAS" in HACS and click **Download**.
-7. Restart Home Assistant.
+**Home Assistant 2026.11 and later:** open **Settings > Marketplace**, choose **Add from link**, and enter `https://github.com/NdR91/ha-assustor-nas`. Follow the prompts to install the integration, then restart Home Assistant.
+
+**Earlier Home Assistant versions:** install through HACS. Open **HACS > Integrations > ⋮ > Custom repositories**, add `https://github.com/NdR91/ha-assustor-nas` with category **Integration**, then find **ASUSTOR NAS** in HACS and download it. Restart Home Assistant.
 
 ### Method 2: Manual
 
@@ -76,6 +101,12 @@ Before installing this integration, you must enable SNMP on your ASUSTOR NAS:
    - **Scan Interval**: How often to poll the NAS for data (default is `300` seconds).
 5. Click **Submit**.
 
+## Volume sensors and upgrades
+
+Volume sensors use the NAS mount point (for example, `/volume1`) as their identity. This keeps their Home Assistant entity identity stable if the SNMP table row number changes.
+
+When a volume has multiple possible legacy entity matches, choose the correct entity in the integration options for each ambiguous metric. The integration does not automatically delete entity registry entries, and it does not merge the history of duplicate entities.
+
 ## 🏗️ Architecture & Technical Decisions
 
 This integration was built following strict Home Assistant Core standards:
@@ -88,10 +119,6 @@ This integration was built following strict Home Assistant Core standards:
 ## 🤝 Contributing
 
 Contributions are welcome! If you find a bug or have a feature request, please open an issue. If you want to contribute code, feel free to open a pull request.
-
-## 🗂️ Repository Note
-
-This repository includes an `.opencode/` directory to keep AI-assisted development context and decisions transparent and traceable over time.
 
 ## 📄 License
 
