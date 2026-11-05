@@ -9,6 +9,7 @@ from .api import AsustorNasApiClient
 from .const import CONF_COMMUNITY, DEFAULT_PORT, DEFAULT_SCAN_INTERVAL
 from .coordinator import AsustorNasDataUpdateCoordinator
 from .data import AsustorNasConfigEntry, AsustorNasData
+from .repairs import async_remove_volume_migration_issue
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
@@ -62,3 +63,8 @@ async def async_unload_entry(
 ) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: AsustorNasConfigEntry) -> None:
+    """Remove the issue after the user permanently removes this NAS entry."""
+    async_remove_volume_migration_issue(hass, entry)

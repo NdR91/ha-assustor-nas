@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 from .coordinator import AsustorNasDataUpdateCoordinator
 from .data import AsustorNasConfigEntry
+from .repairs import async_update_volume_migration_issue
 from .volume_identity import migrate_volume_entities, volume_entity_key, volume_identity, volume_value_for_mount
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,6 +92,7 @@ async def async_setup_entry(
             entry.options.get("volume_migrations", {}),
         )
     )
+    async_update_volume_migration_issue(hass, entry, blocked_volume_metrics)
 
     entities: list[AsustorNasSensorEntity] = [
         AsustorNasSensorEntity(coordinator, entry, description)
@@ -213,6 +215,7 @@ async def async_setup_entry(
                 entry.options.get("volume_migrations", {}),
             )
         )
+        async_update_volume_migration_issue(hass, entry, blocked_volume_metrics)
 
         for volume_id, volume in coordinator.data.get("volumes", {}).items():
             volume_id_str = str(volume_id)

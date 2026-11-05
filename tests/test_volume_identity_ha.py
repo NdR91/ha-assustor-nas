@@ -3,6 +3,7 @@
 from datetime import timedelta
 import logging
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -10,10 +11,12 @@ pytest.importorskip("pytest_homeassistant_custom_component")
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.ha_asustor_nas_custom_integration import async_unload_entry
 from custom_components.ha_asustor_nas_custom_integration.const import DOMAIN
+from custom_components.ha_asustor_nas_custom_integration.repairs import async_update_volume_migration_issue
 from custom_components.ha_asustor_nas_custom_integration.sensor import async_setup_entry as async_setup_sensor_entry
 from custom_components.ha_asustor_nas_custom_integration.volume_identity import migrate_volume_entities
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 
@@ -80,6 +83,76 @@ async def test_real_registry_ambiguity_is_untouched_until_explicit_choice(hass, 
     assert registry.async_get(legacy[1].entity_id).entity_id == legacy[1].entity_id
     assert registry.async_get(legacy[0].entity_id).unique_id == old_ids[legacy[0].entity_id]
     assert registry.async_get(legacy[2].entity_id).unique_id == old_ids[legacy[2].entity_id]
+
+
+async def test_repairs_issue_tracks_conflicts_until_stable_entity_is_verified(hass, volume_entry):
+    """A conflict creates one issue and missing observations cannot resolve it."""
+    issue_registry = ir.async_get(hass)
+    issue_id = f"volume_migration_{volume_entry.entry_id}"
+
+    conflicts = {("volume1", "used"), ("volume2", "total")}
+    async_update_volume_migration_issue(hass, volume_entry, conflicts)
+    first_issue = issue_registry.async_get_issue(DOMAIN, issue_id)
+    assert first_issue is not None
+    assert first_issue.translation_key == "volume_migration_conflict"
+    assert first_issue.is_fixable is False
+    assert first_issue.is_persistent is True
+
+    # An empty/partial poll cannot prove the volume migration was resolved.
+    async_update_volume_migration_issue(hass, volume_entry, set())
+    assert issue_registry.async_get_issue(DOMAIN, issue_id) is not None
+
+    target = f"{volume_entry.entry_id}_volume_volume1_used"
+    er.async_get(hass).async_get_or_create(
+        "sensor", DOMAIN, target, config_entry=volume_entry, original_name="volume1 Used"
+    )
+    async_update_volume_migration_issue(hass, volume_entry, set())
+    assert issue_registry.async_get_issue(DOMAIN, issue_id) is not None
+
+    second_target = f"{volume_entry.entry_id}_volume_volume2_total"
+    er.async_get(hass).async_get_or_create(
+        "sensor", DOMAIN, second_target, config_entry=volume_entry, original_name="volume2 Total"
+    )
+    async_update_volume_migration_issue(hass, volume_entry, set())
+    assert issue_registry.async_get_issue(DOMAIN, issue_id) is None
+
+
+async def test_repairs_issue_is_per_config_entry_and_dismissal_is_preserved(hass, volume_entry):
+    """NAS entries get distinct issues, and registry updates do not revive ignored issues."""
+    issue_registry = ir.async_get(hass)
+    other_entry = MockConfigEntry(domain=DOMAIN, unique_id="00:11:22:33:44:77")
+    other_entry.add_to_hass(hass)
+    async_update_volume_migration_issue(hass, volume_entry, {("volume1", "used")})
+    async_update_volume_migration_issue(hass, other_entry, {("volume2", "total")})
+
+    first_id = f"volume_migration_{volume_entry.entry_id}"
+    second_id = f"volume_migration_{other_entry.entry_id}"
+    assert issue_registry.async_get_issue(DOMAIN, first_id) is not None
+    assert issue_registry.async_get_issue(DOMAIN, second_id) is not None
+    assert first_id != second_id
+
+    issue_registry.async_ignore(DOMAIN, first_id, True)
+    async_update_volume_migration_issue(hass, volume_entry, {("volume1", "used")})
+    assert issue_registry.async_get_issue(DOMAIN, first_id).dismissed_version is not None
+
+
+async def test_removing_config_entry_deletes_only_its_repairs_issue(
+    hass, volume_entry, monkeypatch, enable_custom_integrations
+):
+    """Reload/unload keeps the repair, while permanent removal clears it."""
+    issue_registry = ir.async_get(hass)
+    other_entry = MockConfigEntry(domain=DOMAIN, unique_id="00:11:22:33:44:78")
+    other_entry.add_to_hass(hass)
+    async_update_volume_migration_issue(hass, volume_entry, {("volume1", "used")})
+    async_update_volume_migration_issue(hass, other_entry, {("volume2", "total")})
+
+    monkeypatch.setattr(hass.config_entries, "async_unload_platforms", AsyncMock(return_value=True))
+    assert await async_unload_entry(hass, volume_entry)
+    assert issue_registry.async_get_issue(DOMAIN, f"volume_migration_{volume_entry.entry_id}") is not None
+
+    await hass.config_entries.async_remove(volume_entry.entry_id)
+    assert issue_registry.async_get_issue(DOMAIN, f"volume_migration_{volume_entry.entry_id}") is None
+    assert issue_registry.async_get_issue(DOMAIN, f"volume_migration_{other_entry.entry_id}") is not None
 
 
 async def test_real_registry_skips_legacy_conflict_when_stable_target_exists(hass, volume_entry):

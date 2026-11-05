@@ -32,5 +32,11 @@
     "error": {
       "invalid_selection": "Choose one of the listed existing entities."
     }
+  },
+  "issues": {
+    "volume_migration_conflict": {
+      "title": "Volume sensor migration conflict on {nas_name}",
+      "description": "Some existing volume sensors match more than one legacy entity: {conflicts}. No entities were changed or removed.\n\nTo resolve this, open **Settings > Devices & services > Integrations**, select this ASUSTOR NAS, and open its options using **Configure**. For each listed sensor, choose the existing entity used by your dashboard. The integration reloads after you save your choices."
+    }
   }
 }
